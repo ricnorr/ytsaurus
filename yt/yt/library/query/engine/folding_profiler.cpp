@@ -782,7 +782,7 @@ size_t TExpressionProfiler::Profile(
     int hashtableIndex = Variables_->AddOpaque<std::unique_ptr<TLookupRowInRowsetWebAssemblyContext>>();
     fragments->DebugInfos.emplace_back(inExpr, argIds);
     fragments->Items.emplace_back(
-        MakeCodegenInExpr(std::move(argIds), index, hashtableIndex, ComparerManager_),
+        MakeCodegenInExpr(std::move(argIds), index, hashtableIndex, ComparerManager_, inExpr->Simd),
         inExpr->GetWireType(),
         /*nullable*/ false);
     return fragments->Items.size() - 1;
@@ -2350,6 +2350,7 @@ void TQueryProfiler::Profile(
     const TConstFrontQueryPtr& query,
     size_t* slotCount)
 {
+    std::cout << "ricnorr, fill codegenSource" << std::endl;
     Fold(ExecutionBackend_);
     Fold(EFoldingObjectType::ScanOp);
 

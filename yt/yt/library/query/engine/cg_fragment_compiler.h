@@ -122,7 +122,8 @@ TCodegenExpression MakeCodegenInExpr(
     std::vector<size_t> argIds,
     int arrayIndex,
     int hashtableIndex,
-    TComparerManagerPtr comparerManager);
+    TComparerManagerPtr comparerManager,
+    bool simd = false);
 
 TCodegenExpression MakeCodegenBetweenExpr(
     std::vector<size_t> argIds,

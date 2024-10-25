@@ -213,6 +213,7 @@ void ScanOpHelper(
     TUnversionedRowsConsumer consumeRowsFunction,
     TRowSchemaInformation* rowSchemaInformation)
 {
+    std::cout << "ricnorr, ScanOpHelper" << std::endl;
     auto consumeRows = PrepareFunction(consumeRowsFunction);
 
     auto finalLogger = Finally([&] {
@@ -1845,8 +1846,10 @@ TPIValue* LookupInRowset(
     TComparerFunction* eqComparerFunction,
     TPIValue* key,
     TSharedRange<TRange<TPIValue>>* rowset,
-    std::unique_ptr<TLookupRowInRowsetWebAssemblyContext>* lookupContext)
+    std::unique_ptr<TLookupRowInRowsetWebAssemblyContext>* lookupContext,
+    bool simd = false)
 {
+    std::ignore = simd;
     auto comparer = PrepareFunction(comparerFunction);
     auto hasher = PrepareFunction(hasherFunction);
     auto eqComparer = PrepareFunction(eqComparerFunction);
@@ -1916,6 +1919,7 @@ TPIValue* LookupInRowset(
     if (it != lookupTable->end()) {
         return const_cast<TPIValue*>(*it);
     }
+    
 
     return nullptr;
 }
@@ -1926,9 +1930,11 @@ char IsRowInRowset(
     TComparerFunction* eqComparer,
     TPIValue* values,
     TSharedRange<TRange<TPIValue>>* rows,
-    std::unique_ptr<TLookupRowInRowsetWebAssemblyContext>* lookupRows)
+    std::unique_ptr<TLookupRowInRowsetWebAssemblyContext>* lookupRows,
+    bool simd)
 {
-    return LookupInRowset(comparer, hasher, eqComparer, values, rows, lookupRows) != nullptr;
+    std::cout << "ricnorr. is row in rowset?" << std::endl;
+    return LookupInRowset(comparer, hasher, eqComparer, values, rows, lookupRows, simd) != nullptr;
 }
 
 char IsRowInRanges(

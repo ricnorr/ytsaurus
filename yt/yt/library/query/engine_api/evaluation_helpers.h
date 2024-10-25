@@ -4,6 +4,7 @@
 #include "position_independent_value.h"
 
 #include "public.h"
+#include "yt/yt/library/query/engine/simd_hashtable.h"
 
 #include <yt/yt/library/web_assembly/api/data_transfer.h>
 #include <yt/yt/library/web_assembly/api/function.h>
@@ -109,6 +110,7 @@ using TJoinLookup = google::dense_hash_map<
 
 struct TLookupRowInRowsetWebAssemblyContext
 {
+    std::unique_ptr<simd_hashtable_t> SimdLookupTable;
     std::unique_ptr<TLookupRows> LookupTable;
     std::vector<TPIValue*> RowsInsideCompartment;
     NWebAssembly::TCopyGuard RowsInsideCompartmentGuard;

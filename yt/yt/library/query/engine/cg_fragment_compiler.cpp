@@ -54,6 +54,7 @@ Value* CodegenForEachRow(
     const TCodegenConsumer& codegenConsumer,
     const std::vector<int>& stringLikeColumnIndices = {})
 {
+    std::cout << "ricnorr, codegen for each row, very important" << std::endl;
     auto* loopBB = builder->CreateBBHere("loop");
     auto* condBB = builder->CreateBBHere("cond");
     auto* endLoopBB = builder->CreateBBHere("endLoop");
@@ -119,7 +120,7 @@ Value* CodegenForEachRow(
     builder->CreateCondBr(finished, endLoopBB, condBB);
 
     builder->SetInsertPoint(endLoopBB);
-
+    std::cout << "ricnorr, dump codegen for each row" << std::endl;
     return MakePhi(builder, loopBB, condBB, builder->getTrue(), builder->getFalse(), "finishedPhi");
 }
 
@@ -2170,6 +2171,7 @@ TCodegenExpression MakeCodegenBinaryOpExpr(
     TString name,
     bool useCanonicalNullRelations)
 {
+    std::cout << "ricnorr, here where created" << std::endl;
     if (IsLogicalBinaryOp(opcode)) {
         return MakeCodegenLogicalBinaryOpExpr(
             opcode,
@@ -2208,7 +2210,8 @@ TCodegenExpression MakeCodegenInExpr(
     std::vector<size_t> argIds,
     int arrayIndex,
     int hashtableIndex,
-    TComparerManagerPtr comparerManager)
+    TComparerManagerPtr comparerManager,
+    bool simd)
 {
     return [
         =,
@@ -2216,7 +2219,7 @@ TCodegenExpression MakeCodegenInExpr(
         comparerManager = std::move(comparerManager)
     ] (TCGExprContext& builder) {
         auto keySize = std::ssize(argIds);
-
+        std::cout << "ricnorr, MakeCodegenInExpr, keySize=" << keySize << std::endl;
         Value* newValues = CodegenAllocateValues(builder, keySize);
 
         std::vector<EValueType> keyTypes(keySize);
@@ -2234,7 +2237,8 @@ TCodegenExpression MakeCodegenInExpr(
                 comparerManager->GetEqComparer(keyTypes, builder.Module),
                 newValues,
                 builder.GetOpaqueValue(arrayIndex),
-                builder.GetOpaqueValue(hashtableIndex)
+                builder.GetOpaqueValue(hashtableIndex),
+                simd
             });
 
         return TCGValue::Create(
@@ -2649,7 +2653,7 @@ size_t MakeCodegenScanOp(
         executionBackend
     ] (TCGOperatorContext& builder) {
         codegenSource(builder);
-
+        std::cout << "ricnorr, start generation for select" << std::endl;
         auto consume = TLlvmClosure();
 
         // TODO(dtorilov): This is a fix of YT-21907. Should use consumer with PI conversion here.
@@ -2782,7 +2786,6 @@ size_t MakeCodegenMultiJoinOp(
                         primaryValuesPtrRef,
                         keyPtrsRef
                     });
-
                 return builder->CreateIsNotNull(finished);
             };
 
@@ -2864,20 +2867,17 @@ size_t MakeCodegenFilterOp(
 {
     size_t consumerSlot = (*slotCount)++;
 
-    *codegenSource = [
-        =,
-        codegenSource = std::move(*codegenSource),
-        fragmentInfos = std::move(fragmentInfos)
-    ] (TCGOperatorContext& builder) {
-        Type* closureType = TClosureTypeBuilder::Get(
-            builder->getContext(),
-            fragmentInfos->Functions.size());
-        Value* expressionClosurePtr = builder->CreateAlloca(
-            closureType,
-            nullptr,
-            "expressionClosurePtr");
+    *codegenSource = [=, codegenSource = std::move(*codegenSource),
+                      fragmentInfos = std::move(fragmentInfos)](
+                         TCGOperatorContext &builder) {
+      std::cout << "ricnorr, MakeCodegenFilterOp " << std::endl;
+      Type *closureType = TClosureTypeBuilder::Get(
+          builder->getContext(), fragmentInfos->Functions.size());
+      Value *expressionClosurePtr =
+          builder->CreateAlloca(closureType, nullptr, "expressionClosurePtr");
 
-        builder[producerSlot] = [&] (TCGContext& builder, Value* values) {
+      builder[producerSlot] =
+          [&](TCGContext &builder, Value *values) {
             auto rowBuilder = TCGExprContext::Make(
                 builder,
                 *fragmentInfos,
@@ -2908,9 +2908,9 @@ size_t MakeCodegenFilterOp(
             builder->SetInsertPoint(endIfBB);
 
             return MakePhi(builder, ifBB, condBB, result, builder->getFalse(), "finishedPhi");
-        };
+          };
 
-        codegenSource(builder);
+      codegenSource(builder);
     };
 
     return consumerSlot;
@@ -3158,6 +3158,7 @@ size_t MakeCodegenProjectOp(
         argIds = std::move(argIds)
     ] (TCGOperatorContext& builder) {
         int projectionCount = argIds.size();
+        std::cout << "ricnorr, MakeCodegenProjectOp, projectionCount " << projectionCount << std::endl;
 
         Value* newValues = CodegenAllocateValues(builder, projectionCount);
 
@@ -3170,6 +3171,7 @@ size_t MakeCodegenProjectOp(
             "expressionClosurePtr");
 
         builder[producerSlot] = [&] (TCGContext& builder, Value* values) {
+                  std::cout << "ricnorr, MakeCodegenProjectOp " << std::endl;
             Value* newValuesRef = builder->ViaClosure(newValues);
 
             auto innerBuilder = TCGExprContext::Make(
